@@ -1,0 +1,31 @@
+services:
+  db:
+    image: mysql
+    ports:
+      - "3306:3306"
+    restart: always
+    hostname: mysql-db
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  # for debugging
+  # workbench:
+  #   image: lscr.io/linuxserver/mysql-workbench:latest
+  #   container_name: mysql-workbench
+  #   cap_add:
+  #     - IPC_LOCK
+  #   environment:
+  #     - PUID=1000
+  #     - PGID=1000
+  #     - TZ=Etc/UTC
+  #   ports:
+  #     - 3000:3000
+  #     - 3001:3001
+  #   restart: unless-stopped
+
+
+volumes:
+    mysql_data:
