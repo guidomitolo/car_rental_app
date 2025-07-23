@@ -1,3 +1,5 @@
 car_rental_venv
 .vscode
 __pycache__
+.python-version
+.env

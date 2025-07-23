@@ -1,6 +1,6 @@
 from flask import Flask
 from flask_restx  import Api
-from src.database import init_app_db
+from src.database.core import init_app_db
 from src.resources.customer import customer_ns
 from src.resources.vehicle import vehicle_ns
 from src.resources.order import order_ns

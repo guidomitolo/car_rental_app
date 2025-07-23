@@ -1,10 +1,11 @@
 from flask_restx import Namespace, Resource, fields
-from src.database import retrieve, select, update, create
+from ..schemas.vehicle import Vehicle
 
 
 vehicle_ns = Namespace('vehicle', description='Vehicle operations')
 
 vehicle_model = vehicle_ns.model('Vehicle', {
+    "id": fields.String(readOnly=True, description="Vehicle's DB id."),
     "manufacturer": fields.String( description="Manufacturer of the vehicle."),
     "model": fields.String( description="Model of the vehicle."),
     "type": fields.String(enum=['Sedan','SUV','VAN'], description="Type of the vehicle (Sedan, SUV, VAN)."),
@@ -19,14 +20,12 @@ vehicle_model = vehicle_ns.model('Vehicle', {
 @vehicle_ns.response(404, 'Vehicle not found')
 class VehicleView(Resource):
 
-    __table = "vehicle"
-
     def get_vehicle(self, id:int):
         try:
-            vehicle = retrieve(self.__table, id)
+            vehicle = Vehicle.get(id)
             return vehicle
-        except:
-            raise {'error': 'Not Found'}
+        except Exception as error:
+            print(error)
     
     @vehicle_ns.marshal_list_with(vehicle_model)
     def get(self, vehicle_id:int):
@@ -35,27 +34,26 @@ class VehicleView(Resource):
     @vehicle_ns.expect(vehicle_model, validate=True)
     @vehicle_ns.marshal_with(vehicle_model, code=200)
     def put(self, vehicle_id:int):
-        vehicle_updated_data = vehicle_ns.payload
-        vehicle_data = dict(self.get_vehicle(vehicle_id))
-        availability = vehicle_updated_data.get('is_available')
-        if isinstance(availability, bool):
-            vehicle_updated_data['is_available'] = '1' if availability else '0' 
-        vehicle_data.update(vehicle_updated_data)
-        vehicle = update(self.__table, vehicle_id, vehicle_data)
+        vehicle = self.get_vehicle(vehicle_id)
+        updated_attrs = vehicle_ns.payload
+        vehicle.update(updated_attrs)
         return vehicle
+
+    @vehicle_ns.marshal_list_with(vehicle_model)
+    def delete(self, vehicle_id:int):
+        vehicle_to_delete = self.get_vehicle(vehicle_id)
+        vehicle_to_delete.remove()
+        return vehicle_to_delete
 
 @vehicle_ns.route('/')
 class VehicleListView(Resource):
-    
-    __table = "vehicle"
 
     @vehicle_ns.marshal_list_with(vehicle_model, code=200)
     def get(self):
-        return select(self.__table)
+        return Vehicle.list()
     
     @vehicle_ns.expect(vehicle_model, validate=True)
     @vehicle_ns.marshal_with(vehicle_model, code=200)
     def post(self,):
-        new_vehicle_data = vehicle_ns.payload
-        return create(self.__table, new_vehicle_data)
+        return Vehicle.create(vehicle_ns.payload)
         

@@ -1,10 +1,11 @@
 from flask_restx import Namespace, Resource, fields
-from src.database import retrieve, select, update, create
+from ..schemas.customer import Customer
 
 
 customer_ns = Namespace('customer', description='Customer operations')
 
 customer_model = customer_ns.model('Customer', {
+    "id": fields.Integer(readOnly=True, description="Customer's DB id."),
     "first_name": fields.String(max_length=50, description="Customer's first name."),
     "last_name": fields.String(max_length=50, description="Customer's last name."),
     "email": fields.String(max_length=100, description="Unique email address of the customer."),
@@ -15,19 +16,19 @@ customer_model = customer_ns.model('Customer', {
     "zip_code": fields.String(max_length=10, description="Customer's zip code."),
 })
 
+
+
 @customer_ns.route('/<int:customer_id>')
 @customer_ns.param('customer_id', 'The customer identifier')
 @customer_ns.response(404, 'Customer not found')
 class CustomerView(Resource):
 
-    __table = "customer"
-
     def get_customer(self, id:int):
         try:
-            customer = retrieve(self.__table, id)
+            customer = Customer.get(id)
             return customer
-        except:
-            raise {'error': 'Not Found'}
+        except Exception as error:
+            print(error)
     
     @customer_ns.marshal_list_with(customer_model)
     def get(self, customer_id:int):
@@ -36,24 +37,26 @@ class CustomerView(Resource):
     @customer_ns.expect(customer_model, validate=True)
     @customer_ns.marshal_with(customer_model, code=200)
     def put(self, customer_id:int):
-        customer_updated_data = customer_ns.payload
-        customer_data = dict(self.get_customer(customer_id))
-        customer_data.update(customer_updated_data)
-        customer = update(self.__table, customer_id, customer_data)
+        customer = self.get_customer(customer_id)
+        updated_attrs = customer_ns.payload
+        customer.update(updated_attrs)
         return customer
+    
+    @customer_ns.marshal_list_with(customer_model)
+    def delete(self, customer_id:int):
+        customer_to_delete = self.get_customer(customer_id)
+        customer_to_delete.remove()
+        return customer_to_delete
 
 @customer_ns.route('/')
 class CustomerListView(Resource):
     
-    __table = "customer"
-
     @customer_ns.marshal_list_with(customer_model, code=200)
     def get(self):
-        return select(self.__table)
+        return Customer.list()
     
     @customer_ns.expect(customer_model, validate=True)
     @customer_ns.marshal_with(customer_model, code=200)
     def post(self,):
-        new_customer_data = customer_ns.payload
-        return create(self.__table, new_customer_data)
+        return Customer.create(customer_ns.payload)
         
