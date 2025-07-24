@@ -37,6 +37,7 @@ class Order(Model):
         return data
     
     @model_validator(mode='after')
-    def check_total_amount(self):
+    def check_total_amount(self) -> 'Order':
         diff = self.return_date - self.pick_up_date
         self.total_amount = self.vehicle.daily_rate * (diff).days
+        return self

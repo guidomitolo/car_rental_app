@@ -21,7 +21,6 @@ class SQLQuery():
         finally:
             cursor.close()
 
-
     def retrieve(self, id):
         query = f"SELECT * FROM {self.table} WHERE id = {id};"
         cursor = self.connection.cursor()
@@ -54,11 +53,12 @@ class SQLQuery():
             cursor.close()
 
     def create(self, data):
-        filtered_data = {key: value for key, value in data.items() if key != 'id'}
-        fields = ", ".join(filtered_data.keys())
-        placeholders = ", ".join(["%s"] * len(filtered_data))
+        data.pop('id')
+        data.pop('created_at')
+        fields = ", ".join(data.keys())
+        placeholders = ", ".join(["%s"] * len(data))
         query = f"INSERT INTO {self.table} ({fields}) VALUES ({placeholders});"
-        values_to_insert = tuple(filtered_data.values())
+        values_to_insert = tuple(data.values())
         cursor = self.connection.cursor()
         try:
             cursor.execute(query, values_to_insert)
