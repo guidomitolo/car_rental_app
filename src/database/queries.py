@@ -7,13 +7,6 @@ class SQLQuery():
         self.connection = get_db()
         self.table = table
 
-    # def get_fk_data(self, order_data):
-    #     fk1_data = self.retrieve('customer', order_data['customer_id'])
-    #     fk2_data = self.retrieve('vehicle', order_data['vehicle_id'])
-    #     order_data.update({'customer': fk1_data})
-    #     order_data.update({'vehicle': fk2_data})
-    #     return order_data
-
     def select(self,):
         query = f"SELECT * FROM {self.table};"
         cursor = self.connection.cursor()

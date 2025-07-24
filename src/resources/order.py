@@ -14,7 +14,6 @@ order_model = order_ns.model('Order', {
     'pick_up_date': fields.Date(required=True, description='The date the vehicle is picked up (YYYY-MM-DD)'),
     'return_date': fields.Date(required=True, description='The date the vehicle is returned (YYYY-MM-DD)'),
     'status': fields.String(
-        required=True,
         enum=['pending', 'confirmed', 'completed', 'cancelled'],
         default='pending',
         description='The status of the rental order'
