@@ -31,9 +31,6 @@ class SQLQuery():
             if not row:
                 raise Exception('Not found')
             headers = cursor.column_names
-            # not scalable
-            # if self.table == 'rental_order':
-            #     self.get_fk_data(data)
             return headers, row
         except Exception as e:
             print(f"Error selecting data: {e}")

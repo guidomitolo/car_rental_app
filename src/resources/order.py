@@ -2,7 +2,7 @@ from flask_restx import Namespace, Resource, fields
 from ..schemas.order import Order
 from .customer import customer_model
 from .vehicle import vehicle_model
-from datetime import datetime
+
 
 
 order_ns = Namespace('order', description='Rental order operations')
@@ -55,18 +55,6 @@ class OrderView(Resource):
         order.update(updated_attrs)
         return order
 
-    # @order_ns.expect(order_model, validate=True)
-    # @order_ns.marshal_with(order_model_retrieve, code=200)
-    # def put(self, order_id:int):
-    #     order_updated_data = order_ns.payload
-    #     order_data = dict(self.get_order(order_id))
-    #     order_data.update(order_updated_data)
-    #     order_data.update({'total_amount': self.calculate_rate(order_data['pick_up_date'], order_data['return_date'], order_data['vehicle']['daily_rate'])})
-    #     order_data.pop('customer')
-    #     order_data.pop('vehicle')
-    #     order = update(self.__table, order_id, order_data)
-    #     return order
-
 @order_ns.route('/')
 class OrderListView(Resource):
     
@@ -77,5 +65,5 @@ class OrderListView(Resource):
     @order_ns.expect(order_model, validate=True)
     @order_ns.marshal_with(order_model_retrieve, code=200)
     def post(self,):
-        return Order.create(order_ns.payload)
+        return Order(**order_ns.payload).create()
         
