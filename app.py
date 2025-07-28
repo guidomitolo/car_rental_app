@@ -7,6 +7,7 @@ from src.resources.order import order_ns
 
 
 app = Flask(__name__)
+app.config['RESTX_MASK_SWAGGER'] = False
 
 init_app_db(app)
 

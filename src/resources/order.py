@@ -1,7 +1,7 @@
 from flask_restx import Namespace, Resource, fields
 from ..schemas.order import Order
-from .customer import customer_model
-from .vehicle import vehicle_model
+from .customer import customer_model_retrieve
+from .vehicle import vehicle_model_retrieve
 
 
 
@@ -22,8 +22,8 @@ order_model = order_ns.model('Order', {
 
 order_model_retrieve = order_ns.model('OrderRetrive', {
     "id": fields.Integer(readOnly=True, description="Order's DB id."),
-    'customer': fields.Nested(customer_model, description='The ID of the customer who placed the order'),
-    'vehicle': fields.Nested(vehicle_model, description='The ID of the vehicle rented'),
+    'customer': fields.Nested(customer_model_retrieve, description='The ID of the customer who placed the order'),
+    'vehicle': fields.Nested(vehicle_model_retrieve, description='The ID of the vehicle rented'),
     'pick_up_date': fields.Date(description='The date the vehicle is picked up (YYYY-MM-DD)'),
     'return_date': fields.Date(description='The date the vehicle is returned (YYYY-MM-DD)'),
     'total_amount': fields.Float(description='The total amount for the rental', precision=2),
@@ -43,7 +43,7 @@ class OrderView(Resource):
         except Exception as error:
             print(error)
     
-    @order_ns.marshal_list_with(order_model_retrieve)
+    @order_ns.marshal_with(order_model_retrieve)
     def get(self, order_id:int):
         return self.get_order(order_id)
     
@@ -54,6 +54,12 @@ class OrderView(Resource):
         updated_attrs = order_ns.payload
         order.update(updated_attrs)
         return order
+    
+    @order_ns.marshal_with(order_model_retrieve)
+    def delete(self, order_id:int):
+        order_to_delete = self.get_order(order_id)
+        order_to_delete.remove()
+        return order_to_delete
 
 @order_ns.route('/')
 class OrderListView(Resource):

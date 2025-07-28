@@ -1,7 +1,7 @@
 from .core import get_db
 
 
-class SQLQuery():
+class Operator():
 
     def __init__(self, table):
         self.connection = get_db()
@@ -38,12 +38,15 @@ class SQLQuery():
             cursor.close()
 
     def update_record(self, id, data):
-        new_attrs = "".join([f"{key} = '{value}', " for key, value in data.items() if key != 'id'])
-        query = f"UPDATE {self.table} SET {new_attrs[:-2]} WHERE id = {id};"
+        fields_placeholders = [f'{key} = %s' for key in data.keys()]
+        set_clause = ", ".join(fields_placeholders)
+        values_to_insert = tuple(list(data.values()) + [id])
+        query = f"UPDATE {self.table} SET {set_clause} WHERE id = %s;"
         cursor = self.connection.cursor()
         try:
-            cursor.execute(query)
+            cursor.execute(query, values_to_insert)
             self.connection.commit()
+            print(cursor.rowcount, "record(s) affected")
             return self.retrieve(id)
         except Exception as e:
             self.connection.rollback()
@@ -53,8 +56,6 @@ class SQLQuery():
             cursor.close()
 
     def create(self, data):
-        data.pop('id')
-        data.pop('created_at')
         fields = ", ".join(data.keys())
         placeholders = ", ".join(["%s"] * len(data))
         query = f"INSERT INTO {self.table} ({fields}) VALUES ({placeholders});"

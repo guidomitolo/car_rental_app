@@ -45,8 +45,8 @@ def create_tables() -> None:
             license_plate VARCHAR(20) UNIQUE,
             daily_rate DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
             is_available BOOLEAN NOT NULL DEFAULT TRUE,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        ) ENGINE=InnoDB;
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
         """
     )
     customer_table: str = (
@@ -61,8 +61,9 @@ def create_tables() -> None:
             city VARCHAR(100),
             state VARCHAR(100),
             zip_code VARCHAR(10),
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        ) ENGINE=InnoDB;
+            contact_channel ENUM('email', 'sms', 'whatsapp') NOT NULL DEFAULT 'email',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
         """
     )
     rental_order_table: str = (
@@ -75,12 +76,12 @@ def create_tables() -> None:
             return_date DATE NOT NULL,
             total_amount DECIMAL(10, 2) NOT NULL,
             status ENUM('pending', 'confirmed', 'completed', 'cancelled') NOT NULL DEFAULT 'pending',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (customer_id) REFERENCES customer(id) ON DELETE CASCADE,
             FOREIGN KEY (vehicle_id) REFERENCES vehicle(id) ON DELETE CASCADE,
             CONSTRAINT chk_max_days_rental CHECK (DATEDIFF(return_date, pick_up_date) <= 7),
             CONSTRAINT chk_max_reserve_days CHECK (DATEDIFF(pick_up_date, DATE(created_at)) <= 7)
-        ) ENGINE=InnoDB;
+        );
         """
     )
         
@@ -134,8 +135,23 @@ def populate_tables() -> None:
 
         cursor.execute("SELECT COUNT(*) FROM customer")
         if cursor.fetchone()[0] == 0:
-            cursor.execute("INSERT INTO customer (first_name, last_name, email, phone, address, city, state, zip_code) VALUES ('Alice', 'Smith', 'alice.smith@example.com', '555-123-4567', '123 Main St', 'Anytown', 'CA', '90210');")
-            cursor.execute("INSERT INTO customer (first_name, last_name, email, phone, address, city, state, zip_code) VALUES ('Bob', 'Johnson', 'bob.johnson@example.com', '555-987-6543', '456 Oak Ave', 'Otherville', 'NY', '10001')")
+            cursor.execute("""
+            INSERT INTO customer (first_name, last_name, email, phone, address, city, state, zip_code, contact_channel) VALUES
+            ('Alice', 'Smith', 'alice.smith@example.com', '555-123-4567', '123 Oak Avenue', 'Springfield', 'IL', '62704', 'email');
+            """)
+            cursor.execute("""
+            INSERT INTO customer (first_name, last_name, email, phone, address, city, state, zip_code, contact_channel) VALUES
+            ('Bob', 'Johnson', 'bob.johnson@example.net', '555-987-6543', '45 Pine Street', 'Rivertown', 'NY', '10001', 'sms');
+            """)
+            cursor.execute("""
+            INSERT INTO customer (first_name, last_name, email, phone, address, city, state, zip_code, contact_channel) VALUES
+            ('Charlie', 'Brown', 'charlie.brown@example.org', '555-555-1212', '789 Maple Lane', 'Centerville', 'CA', '90210', 'whatsapp');
+            """)
+            cursor.execute("""
+            INSERT INTO customer (first_name, last_name, email, phone, address, city, state, zip_code, contact_channel) VALUES
+            ('Diana', 'Miller', 'diana.miller@example.co', '555-222-3333', '10 Elm Road', 'Pleasantville', 'TX', '75001', 'email');
+            """)
+            
             connection.commit()
             print("Database initialized with sample data.")
         else:

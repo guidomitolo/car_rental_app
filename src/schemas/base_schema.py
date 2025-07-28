@@ -1,15 +1,13 @@
 from pydantic import BaseModel, model_validator
 from typing import ClassVar
-from ..database.queries import SQLQuery
-from ..database.helpers import format_db_input
+from ..database.manager import Operator
 
 
 
 class Model(BaseModel, extra='allow'):
 
-    sql_manager:ClassVar = SQLQuery
+    sql_manager:ClassVar = Operator
 
-    @format_db_input
     def update(self, data:dict) -> None:
         headers, row = self.sql_manager(self.Meta.__db_table__).update_record(self.id, data)
         updated_fields = self.model_fields_set.intersection(set(data.keys()))
@@ -17,9 +15,9 @@ class Model(BaseModel, extra='allow'):
         for field in updated_fields:
             setattr(self, field, data[field])
 
-    @format_db_input
     def create(self,) -> BaseModel:
-        headers, row = self.sql_manager(self.Meta.__db_table__).create(self.__dict__)
+        new_entity = self.model_dump(exclude_none=True, include=self.model_fields_set)
+        headers, row = self.sql_manager(self.Meta.__db_table__).create(new_entity)
         return self.__class__(**dict(zip(headers, row)))
 
     def remove(self) -> None:
@@ -34,13 +32,6 @@ class Model(BaseModel, extra='allow'):
                 fk_obj = model(**dict(zip(headers, row)))
                 setattr(self, table, fk_obj)
         return self
-
-    @classmethod
-    def format_input(cls, data:dict) -> dict:
-        for key, value in data.items():
-            if isinstance(value, bool):
-                data[key] = int(value)
-        return data
 
     @classmethod
     def get(cls, id:int) -> 'Model':
@@ -59,4 +50,5 @@ class Model(BaseModel, extra='allow'):
     class Meta:
         __db_table__ = ''
         __db_fks__ = {}
+        __db_fields__ = ['id', 'created_at']
 
