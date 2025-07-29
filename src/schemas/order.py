@@ -22,12 +22,11 @@ class Order(Model):
     total_amount: Decimal = Field(None, description="Total amount for the rental order.")
     status: OrderStatus = Field(OrderStatus.PENDING, description="Current status of the rental order.")
 
-    class Meta:
-        __db_table__ = 'rental_order'
-        __db_fks__ = {
-            'customer_id': Customer, 
-            'vehicle_id': Vehicle
-        }
+    _db_table = 'rental_order'
+    _db_fks = {
+        'customer_id': Customer, 
+        'vehicle_id': Vehicle
+    }
 
     def update(self, data):
         return super().update(data)
