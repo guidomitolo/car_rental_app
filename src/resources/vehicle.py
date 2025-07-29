@@ -59,12 +59,12 @@ class VehicleView(Resource):
 @vehicle_ns.route('/')
 class VehicleListView(Resource):
 
-    @vehicle_ns.marshal_list_with(vehicle_model, code=200)
+    @vehicle_ns.marshal_list_with(vehicle_model_retrieve, code=200)
     def get(self):
         return Vehicle.list()
     
     @vehicle_ns.expect(vehicle_model, validate=True)
-    @vehicle_ns.marshal_with(vehicle_model, code=200)
+    @vehicle_ns.marshal_with(vehicle_model_retrieve, code=200)
     def post(self,):
         return Vehicle(**vehicle_ns.payload).create()
         

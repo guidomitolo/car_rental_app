@@ -1,4 +1,4 @@
-from pydantic import Field
+from pydantic import Field, EmailStr
 from typing import Optional
 from enum import Enum
 from datetime import datetime
@@ -13,18 +13,16 @@ class Channel(str, Enum):
 
 
 class Customer(Model):
-    id: int = None
-    created_at: datetime = None
-    first_name: str = Field(..., max_length=50, description="Customer's first name.")
-    last_name: str = Field(..., max_length=50, description="Customer's last name.")
-    email: str = Field(..., max_length=100, description="Unique email address of the customer.")
-    phone: Optional[str] = Field(None, max_length=20, description="Customer's phone number.")
-    address: Optional[str] = Field(None, max_length=255, description="Customer's street address.")
-    city: Optional[str] = Field(None, max_length=100, description="Customer's city.")
-    state: Optional[str] = Field(None, max_length=100, description="Customer's state.")
-    state: Optional[str] = Field(None, max_length=100, description="Customer's state.")
-    zip_code: Optional[str] = Field(None, max_length=10, description="Customer's zip code.")
-    contact_channel: Channel = Field(Channel.email, description="Customer desired contact channel")
+    id: Optional[int] = None
+    created_at: Optional[datetime] = None
+    first_name: str = Field(..., max_length=50)
+    last_name: str = Field(..., max_length=50)
+    email: EmailStr = Field(..., max_length=100)
+    phone: Optional[str] = Field(None, max_length=20)
+    address: Optional[str] = Field(None, max_length=255)
+    city: Optional[str] = Field(None, max_length=100)
+    state: Optional[str] = Field(None, max_length=50)
+    zip_code: Optional[str] = Field(None, max_length=10)
+    contact_channel: Channel = Field(Channel.email)
 
-    class Meta:
-        __db_table__ = 'customer'
+    _db_table = 'customer'
