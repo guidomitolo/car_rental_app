@@ -32,22 +32,21 @@ class Operator():
         query = f"SELECT {select_fields} FROM {self.table} {join_clauses}"
 
         if id:
-            query += f"WHERE {self.table}.id = %s"
+            query += f" WHERE {self.table}.id = %s"
             params = (id,)
 
         query += ";"
 
-        cursor = self.connection.cursor()
+        cursor = self.connection.cursor(dictionary=True)
         try:
             cursor.execute(
                 operation=query,
                 params=params
             )
-            rows = cursor.fetchall()
+            result = cursor.fetchall()
             if id:
-                rows = rows[0]
-            headers = cursor.column_names
-            return headers, rows
+                result = result[0]
+            return result
         except Exception as e:
             print(f"Error selecting data: {e}")
             raise
@@ -72,7 +71,7 @@ class Operator():
         finally:
             cursor.close()
 
-    def create(self, data):
+    def create(self, data, fks=None):
         fields = ", ".join(data.keys())
         placeholders = ", ".join(["%s"] * len(data))
         query = f"INSERT INTO {self.table} ({fields}) VALUES ({placeholders});"
@@ -81,7 +80,7 @@ class Operator():
         try:
             cursor.execute(query, values_to_insert)
             self.connection.commit()
-            return self.select(cursor.lastrowid)
+            return self.select(cursor.lastrowid, fks)
         except Exception as e:
             self.connection.rollback()
             print(f"Error inserting data: {e}")
@@ -101,24 +100,3 @@ class Operator():
             raise
         finally:
             cursor.close()
-
-
-#     def fks(self,) -> None:
-#         query = f"SELECT rental_order.*, customer.* FROM rental_order INNER JOIN customer on rental_order.customer_id = customer.id WHERE rental_order.id = 1;"
-#         cursor = self.connection.cursor()
-#         try:
-#             cursor.execute(query)
-#             row = cursor.fetchone()
-#             if not row:
-#                 raise Exception('Not found')
-#             headers = cursor.column_names
-#             return headers, row
-#         except Exception as e:
-#             print(f"Error selecting data: {e}")
-#             raise e
-#         finally:
-#             cursor.close()
-
-
-# if __name__ == '__main__':
-#     Operator('rental_order').fks()
