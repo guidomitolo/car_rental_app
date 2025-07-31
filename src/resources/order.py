@@ -22,6 +22,8 @@ order_model = order_ns.model('Order', {
 
 order_model_retrieve = order_ns.model('OrderRetrive', {
     "id": fields.Integer(readOnly=True, description="Order's DB id."),
+    "customer_id": fields.Integer(readOnly=True, description="Order's customer id."),
+    "vehicle_id": fields.Integer(readOnly=True, description="Order's vehicle id."),
     'customer': fields.Nested(customer_model_retrieve, description='The ID of the customer who placed the order'),
     'vehicle': fields.Nested(vehicle_model_retrieve, description='The ID of the vehicle rented'),
     'pick_up_date': fields.Date(description='The date the vehicle is picked up (YYYY-MM-DD)'),
