@@ -28,7 +28,7 @@ class Model(BaseModel):
         self._sql_manager(self._db_table).delete(self.id)
 
     @classmethod
-    def check_fks(cls, row) -> 'Model':
+    def build_fk_object(cls, row) -> 'Model':
         fks = cls._db_fks.keys()
         for fk in fks:
             fk_table = cls._db_fks.get(fk)
@@ -37,21 +37,34 @@ class Model(BaseModel):
         return row
     
     @classmethod
+    def get_fk_fields(cls,) -> dict:
+        fk_field = []
+        for key, value in cls._db_fks.items():
+            fk_field.append({'table': key.split('_')[0], 'fields': value._db_table_fields})
+        return fk_field
+    
+    @classmethod
     def get(cls, id:int) -> 'Model':
-        row = cls._sql_manager(table=cls._db_table, id=id, fks=cls._db_fks.keys()).select()[0]
-        row = cls.check_fks(row)
+        fk_joins = cls.get_fk_fields()
+        row = cls._sql_manager(table=cls._db_table, id=id, fks=cls._db_fks.keys()).select(join=fk_joins)[0]
+        row = cls.build_fk_object(row)
         return cls(**row)
     
     @classmethod
     def list(cls,) -> list['Model']:
-        fks = cls._db_fks.keys()
+        fk_joins = cls.get_fk_fields()
         result_list = []
-        rows = cls._sql_manager(table=cls._db_table, fks=cls._db_fks.keys()).select()
+        rows = cls._sql_manager(table=cls._db_table, fks=cls._db_fks.keys()).select(join=fk_joins)
         for row in rows:
-            row = cls.check_fks(row)
+            row = cls.build_fk_object(row)
             obj = cls(**row)
             result_list.append(obj)
         return result_list
+    
+    @classmethod
+    @property
+    def _db_table_fields(cls):
+        return list(cls.model_fields.keys())
     
     class Config:
         extra = "allow"

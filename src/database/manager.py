@@ -14,25 +14,15 @@ class Operator():
         updated_query = query + f" WHERE {self.table}.id = %s"
         return (self.id,), updated_query
 
-    def _get_fk_table_data(self, table: str) -> dict:
-        query = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = %s"
-        cursor = self.connection.cursor()
-        cursor.execute(
-            operation=query,
-            params=(table,)
-        )
-        result = cursor.fetchall()    
-        return [col_name[0] for col_name in result] + ['id']
-
-    def _build_join_query(self) -> list[str, str]:
+    def _build_join_query(self, joins) -> list[str, str]:
         fk_select_fields = []
         fk_join_clauses = []
-        for fk in self.fks:
-            fk_table = fk.split('_')[0]
-            columns = self._get_fk_table_data(fk_table)
-            fk_select_fields += [f"{fk_table}.{col} as {fk_table}_{col}" for col in columns]
+        for join in joins:
+            fk_table = join['table']
+            fk_fields = join['fields']
+            fk_select_fields += [f"{fk_table}.{col} as {fk_table}_{col}" for col in fk_fields]
             fk_join_clauses.append(
-                f"INNER JOIN {fk_table} on {fk_table}.id = {self.table}.{fk}"
+                f"INNER JOIN {fk_table} on {fk_table}.id = {self.table}.{fk_table}_id"
             )
         return ", ".join(fk_select_fields), " ".join(fk_join_clauses)
 
@@ -47,8 +37,8 @@ class Operator():
                     if key not in self.fks: row.pop(key)
         return result
 
-    def _select_fk_resolver(self) -> dict:
-        fk_fields, join_clauses = self._build_join_query()
+    def _select_fk_resolver(self, join) -> dict:
+        fk_fields, join_clauses = self._build_join_query(join)
         select_fields = f"{self.table}.{self.fields}, {fk_fields}"
         query = f"SELECT {select_fields} FROM {self.table} {join_clauses}"
         params = ()
@@ -67,9 +57,9 @@ class Operator():
         finally:
             cursor.close()
 
-    def select(self) -> dict:
+    def select(self, join: list[dict]) -> dict:
         params, query = self._select_id_resolver(f"SELECT {self.table}.{self.fields} FROM {self.table}")
-        if self.fks: return self._select_fk_resolver()
+        if self.fks: return self._select_fk_resolver(join)
         cursor = self.connection.cursor(dictionary=True)
         try:
             cursor.execute(
