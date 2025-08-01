@@ -3,122 +3,65 @@ from .core import get_db
 
 class Operator():
 
-    def __init__(self, table, fields = '*', id=None, fks = None):
-        self.connection = get_db()
+    def __init__(self, table):
         self.table = table
-        self.fks = fks
-        self.fields = fields
-        self.id = id
-
-    def _select_id_resolver(self, query: str) -> tuple[tuple, str]:
-        updated_query = query + f" WHERE {self.table}.id = %s"
-        return (self.id,), updated_query
+        self._connection = get_db()
 
     def _build_join_query(self, joins) -> list[str, str]:
         fk_select_fields = []
         fk_join_clauses = []
-        for join in joins:
-            fk_table = join['table']
-            fk_fields = join['fields']
+        for fk_table, fk_fields in joins.items():
             fk_select_fields += [f"{fk_table}.{col} as {fk_table}_{col}" for col in fk_fields]
             fk_join_clauses.append(
                 f"INNER JOIN {fk_table} on {fk_table}.id = {self.table}.{fk_table}_id"
             )
         return ", ".join(fk_select_fields), " ".join(fk_join_clauses)
 
-    def _build_query_result(self, result: list) -> dict:
-        fk_tables = [fk.split("_")[0] for fk in self.fks]
-        for row in result:
-            for fk_table in fk_tables:
-                fields = [field for field in row.keys() if fk_table in field]
-                row[fk_table] = {}
-                for key in fields:
-                    row[fk_table].update({key.split("_", 1)[1]: row.get(key)})
-                    if key not in self.fks: row.pop(key)
-        return result
+    def _execute_query(self, query: str, params: tuple = None, dictionary_cursor: bool = False):
+        cursor_type = self._connection.cursor(dictionary=dictionary_cursor)
+        try:
+            cursor_type.execute(query, params)
+            if query.strip().lower().startswith(('update', 'delete')):
+                self._connection.commit()
+            elif query.strip().lower().startswith(('insert')):
+                return cursor_type.lastrowid
+            else:
+                return cursor_type.fetchall()
+        except Exception as e:
+            self._connection.rollback()
+            print(f"Database error: {e}")
+            raise
+        finally:
+            cursor_type.close()
 
-    def _select_fk_resolver(self, join) -> dict:
-        fk_fields, join_clauses = self._build_join_query(join)
-        select_fields = f"{self.table}.{self.fields}, {fk_fields}"
-        query = f"SELECT {select_fields} FROM {self.table} {join_clauses}"
+    def select(self, fields: str = '*', id: int = None, joins: list = None) -> list:
+        query = f"SELECT {self.table}.{fields} FROM {self.table}"
         params = ()
-        if self.id: params, query = self._select_id_resolver(query)
-        cursor = self.connection.cursor(dictionary=True)
-        try:
-            cursor.execute(
-                operation= f"{query};",
-                params=params
-            )
-            result = cursor.fetchall()
-            return self._build_query_result(result)
-        except Exception as e:
-            print(f"Error selecting data: {e}")
-            raise
-        finally:
-            cursor.close()
+        if joins:
+            self._joins = joins
+            fk_fields, join_clauses = self._build_join_query(joins)
+            select_fields = f"{self.table}.{fields}, {fk_fields}"
+            query = f"SELECT {select_fields} FROM {self.table} {join_clauses}"
+            params = ()
+        if id:
+            query = query + f" WHERE {self.table}.id = %s"
+            params = (id,)
+        return self._execute_query(query, params, True)
 
-    def select(self, join: list[dict]) -> dict:
-        params, query = self._select_id_resolver(f"SELECT {self.table}.{self.fields} FROM {self.table}")
-        if self.fks: return self._select_fk_resolver(join)
-        cursor = self.connection.cursor(dictionary=True)
-        try:
-            cursor.execute(
-                operation= f"{query};",
-                params=params
-            )
-            result = cursor.fetchall()
-            if len(params) != 0: result = result[0]
-            return result
-        except Exception as e:
-            print(f"Error selecting data: {e}")
-            raise
-        finally:
-            cursor.close()
-
-    def update_record(self, data: dict) -> dict:
+    def update_record(self, id: int, data: dict) -> dict:
         fields_placeholders = [f'{key} = %s' for key in data.keys()]
         set_clause = ", ".join(fields_placeholders)
-        values_to_insert = tuple(list(data.values()) + [self.id])
+        values_to_insert = tuple(list(data.values()) + [id])
         query = f"UPDATE {self.table} SET {set_clause} WHERE id = %s;"
-        cursor = self.connection.cursor()
-        try:
-            cursor.execute(query, values_to_insert)
-            self.connection.commit()
-            print(cursor.rowcount, "record(s) affected")
-            return self.select()
-        except Exception as e:
-            self.connection.rollback()
-            print(f"Error updating data: {e}")
-            raise
-        finally:
-            cursor.close()
+        return self._execute_query(query, values_to_insert, True)
 
     def create(self, data) -> dict:
         fields = ", ".join(data.keys())
         placeholders = ", ".join(["%s"] * len(data))
         query = f"INSERT INTO {self.table} ({fields}) VALUES ({placeholders});"
         values_to_insert = tuple(data.values())
-        cursor = self.connection.cursor()
-        try:
-            cursor.execute(query, values_to_insert)
-            self.connection.commit()
-            return self.select(cursor.lastrowid, self.fks)
-        except Exception as e:
-            self.connection.rollback()
-            print(f"Error inserting data: {e}")
-            raise
-        finally:
-            cursor.close()
+        return self._execute_query(query, values_to_insert, True)
 
-    def delete(self) -> None:
-        cursor = self.connection.cursor()
-        query = f"DELETE FROM {self.table} WHERE id = {self.idd};"
-        try:
-            cursor.execute(query)
-            self.connection.commit()
-        except Exception as e:
-            self.connection.rollback()
-            print(f"Error inserting data: {e}")
-            raise
-        finally:
-            cursor.close()
+    def delete(self, id: int) -> None:
+        query = f"DELETE FROM {self.table} WHERE id = %s;"
+        return self._execute_query(query, (id,), True)
