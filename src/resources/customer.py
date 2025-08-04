@@ -53,8 +53,7 @@ class CustomerView(Resource):
     def put(self, customer_id:int):
         customer = self.get_customer(customer_id)
         updated_attrs = customer_ns.payload
-        customer.update(updated_attrs)
-        return customer
+        return customer.update(updated_attrs)
     
     @customer_ns.marshal_with(customer_model_retrieve)
     def delete(self, customer_id:int):

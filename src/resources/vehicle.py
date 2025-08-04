@@ -47,8 +47,7 @@ class VehicleView(Resource):
     def put(self, vehicle_id:int):
         vehicle = self.get_vehicle(vehicle_id)
         updated_attrs = vehicle_ns.payload
-        vehicle.update(updated_attrs)
-        return vehicle
+        return vehicle.update(updated_attrs)
 
     @vehicle_ns.marshal_with(vehicle_model_retrieve)
     def delete(self, vehicle_id:int):

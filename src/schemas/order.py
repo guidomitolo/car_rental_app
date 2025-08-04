@@ -21,7 +21,7 @@ class Order(Model):
     vehicle_id: int
     pick_up_date: date
     return_date: date
-    total_amount: Optional[Decimal]
+    total_amount: Optional[Decimal] = None
     status: OrderStatus
 
     _db_table = 'rental_order'
@@ -30,7 +30,17 @@ class Order(Model):
         'vehicle_id': Vehicle
     }
 
+    @classmethod
+    def compute_amount(cls, start_date, end_date, rate):
+        return_date = datetime.strptime(end_date, "%Y-%m-%d")
+        pick_up_date = datetime.strptime(start_date, "%Y-%m-%d")
+        diff = return_date - pick_up_date
+        return (diff).days * rate
+
     def update(self, data):
+        start_date = data.get('pick_up_date', self.pick_up_date.strftime("%Y-%m-%d"))
+        end_date = data.get('return_date', self.return_date.strftime("%Y-%m-%d"))
+        data['total_amount'] = self.compute_amount(start_date, end_date, self.vehicle.daily_rate)
         return super().update(data)
     
     def create(self,):
@@ -38,12 +48,9 @@ class Order(Model):
         return data
     
     @model_validator(mode='before')
-    def check_total_amount(self) -> 'Order':
-        if 'total_amount' not in self:
-            return_date = datetime.strptime(self['return_date'], "%Y-%m-%d")
-            pick_up_date = datetime.strptime(self['pick_up_date'], "%Y-%m-%d")
-            self['customer'] = Customer.get(self['customer_id'])
-            self['vehicle'] = Vehicle.get(self['vehicle_id'])
-            diff = return_date - pick_up_date
-            self['total_amount'] = self['vehicle'].daily_rate * (diff).days
-        return self
+    def set_total_amount(data, **kwargs) -> 'Order':
+        if 'vehicle' in data:
+            if 'total_amount' not in data:
+                daily_rate = Vehicle.get(data['vehicle_id']).daily_rate
+                data['total_amount'] = Order.compute_amount(data['pick_up_date'], data['return_date'], daily_rate)
+        return data

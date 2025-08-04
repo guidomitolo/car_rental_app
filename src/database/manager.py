@@ -21,9 +21,8 @@ class Operator():
         cursor_type = self._connection.cursor(dictionary=dictionary_cursor)
         try:
             cursor_type.execute(query, params)
-            if query.strip().lower().startswith(('update', 'delete')):
+            if query.strip().lower().startswith(('update', 'delete', 'insert')):
                 self._connection.commit()
-            elif query.strip().lower().startswith(('insert')):
                 return cursor_type.lastrowid
             else:
                 return cursor_type.fetchall()
@@ -38,7 +37,6 @@ class Operator():
         query = f"SELECT {self.table}.{fields} FROM {self.table}"
         params = ()
         if joins:
-            self._joins = joins
             fk_fields, join_clauses = self._build_join_query(joins)
             select_fields = f"{self.table}.{fields}, {fk_fields}"
             query = f"SELECT {select_fields} FROM {self.table} {join_clauses}"

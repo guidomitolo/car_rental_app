@@ -12,10 +12,8 @@ class Model(BaseModel):
     _db_fields: ClassVar[list] = ['id', 'created_at']
 
     def update(self, data:dict) -> None:
-        row = self._sql_manager(table=self._db_table).update_record(id=self.id, data=data)
-        updated_fields = self.model_fields_set.intersection(set(data.keys()))
-        for field in updated_fields:
-            setattr(self, field, row[field])
+        self._sql_manager(table=self._db_table).update_record(id=self.id, data=data)
+        return self.get(self.id)
 
     def create(self,) -> BaseModel:
         new_entity = self.model_dump(exclude_none=True, include=self.model_fields.keys())

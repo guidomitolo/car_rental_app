@@ -9,10 +9,10 @@ order_ns = Namespace('order', description='Rental order operations')
 
 # https://g.co/gemini/share/f8de723e8566
 order_model = order_ns.model('Order', {
-    'customer_id': fields.Integer(required=True, description='The ID of the customer who placed the order'),
-    'vehicle_id': fields.Integer(required=True, description='The ID of the vehicle rented'),
-    'pick_up_date': fields.Date(required=True, description='The date the vehicle is picked up (YYYY-MM-DD)'),
-    'return_date': fields.Date(required=True, description='The date the vehicle is returned (YYYY-MM-DD)'),
+    'customer_id': fields.Integer(description='The ID of the customer who placed the order'),
+    'vehicle_id': fields.Integer(description='The ID of the vehicle rented'),
+    'pick_up_date': fields.Date(description='The date the vehicle is picked up (YYYY-MM-DD)'),
+    'return_date': fields.Date(description='The date the vehicle is returned (YYYY-MM-DD)'),
     'status': fields.String(
         enum=['pending', 'confirmed', 'completed', 'cancelled'],
         default='pending',
@@ -54,8 +54,7 @@ class OrderView(Resource):
     def put(self, order_id:int):
         order = self.get_order(order_id)
         updated_attrs = order_ns.payload
-        order.update(updated_attrs)
-        return order
+        return order.update(updated_attrs)
     
     @order_ns.marshal_with(order_model_retrieve)
     def delete(self, order_id:int):
